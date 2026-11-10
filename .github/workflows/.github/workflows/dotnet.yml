@@ -1,0 +1,41 @@
+
+name: RaceDay CI/CD
+
+on:
+  push:
+    branches: [ "main", "part-3-mvc" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Find solution file
+        id: solution
+        shell: bash
+        run: |
+          SOLUTION=$(find . -maxdepth 4 \( -name "*.sln" -o -name "*.slnx" \) -print -quit)
+          if [ -z "$SOLUTION" ]; then
+            echo "No solution file found."
+            exit 1
+          fi
+          echo "path=$SOLUTION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ steps.solution.outputs.path }}"
+
+      - name: Build projects
+        run: dotnet build "${{ steps.solution.outputs.path }}" --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test "${{ steps.solution.outputs.path }}" --configuration Release --no-build
