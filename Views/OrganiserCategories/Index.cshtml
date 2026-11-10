@@ -1,0 +1,66 @@
+﻿@model List<RaceDay.Mvc.Models.CategoryViewModel>
+
+<div class="container mt-4">
+    <h2>Categories - @ViewBag.EventName</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <a asp-action="Create"
+       asp-route-eventId="@ViewBag.EventId"
+       class="btn btn-success mb-3">
+        Add Category
+    </a>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Category ID</th>
+                <th>Category Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.CategoryId</td>
+                    <td>@item.CategoryName</td>
+                    <td>
+                        <a asp-action="Edit"
+                           asp-route-id="@item.CategoryId"
+                           asp-route-eventId="@item.EventId"
+                           class="btn btn-warning btn-sm">
+                            Edit
+                        </a>
+
+                        <form asp-action="Delete"
+                              asp-route-id="@item.CategoryId"
+                              asp-route-eventId="@item.EventId"
+                              method="post"
+                              class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Delete this category?')">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <a asp-controller="Organiser"
+       asp-action="Events"
+       class="btn btn-secondary">
+        Back to Events
+    </a>
+</div>

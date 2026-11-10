@@ -1,72 +1,52 @@
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using RACEDAY.API.Data;
+using RaceDay.Mvc.Services;
 
-namespace RACEDAY.API
+var builder = WebApplication.CreateBuilder(args);
+
+// Add MVC services
+builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
+
+// Configure API communication
+builder.Services.AddHttpClient<ApiService>(client =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+    client.BaseAddress = new Uri(
+        builder.Configuration["ApiSettings:BaseUrl"]!);
+});
 
-            // Database connection
-            builder.Services.AddDbContext<RaceDayDbContext>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("RaceDayConnection")));
+// Configure session storage
+builder.Services.AddDistributedMemoryCache();
 
-            // Session support
-            builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.Name = "RaceDay.Mvc.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
-            builder.Services.AddSession(options =>
-            {
-                options.IdleTimeout = TimeSpan.FromMinutes(30);
-                options.Cookie.Name = "RaceDay.Session";
-                options.Cookie.HttpOnly = true;
-                options.Cookie.IsEssential = true;
-            });
+// Build application
+var app = builder.Build();
 
-            // Cookie authentication
-            builder.Services.AddAuthentication(
-                CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.LoginPath = "/api/auth/login";
-                    options.Cookie.Name = "RaceDay.Auth";
-                    options.Cookie.HttpOnly = true;
-                    options.Cookie.SameSite = SameSiteMode.Lax;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                });
-
-            // Authorization
-            builder.Services.AddAuthorization();
-
-            // Controllers and Swagger
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            var app = builder.Build();
-
-            // HTTP request pipeline
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseSession();
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-
-            app.Run();
-        }
-    }
+// Configure HTTP pipeline
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseSession();
+
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();
 

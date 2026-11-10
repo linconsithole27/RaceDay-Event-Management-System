@@ -1,0 +1,37 @@
+﻿@model RaceDay.Mvc.Models.CategoryFormViewModel
+
+<div class="container mt-4">
+    <h2>Edit Category</h2>
+
+    <form asp-action="Edit"
+          asp-route-id="@ViewBag.CategoryId"
+          asp-route-eventId="@ViewBag.EventId"
+          method="post">
+
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="All"
+             class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="CategoryName"
+                   class="form-label"></label>
+
+            <input asp-for="CategoryName"
+                   class="form-control" />
+
+            <span asp-validation-for="CategoryName"
+                  class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Update Category
+        </button>
+
+        <a asp-action="Index"
+           asp-route-eventId="@ViewBag.EventId"
+           class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>
