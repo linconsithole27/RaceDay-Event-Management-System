@@ -1,54 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
 
-using System.ComponentModel.DataAnnotations.Schema;
+namespace RACEDAY.API.Models;
 
-namespace RaceDay.Models;
-
-public class Event
+public partial class Event
 {
-    public int Event_ID { get; set; }
+    public int EventId { get; set; }
 
-    public string Event_Name { get; set; } = "";
+    public string EventName { get; set; } = null!;
 
-    [Column(TypeName = "date")]
-    public DateTime Event_Date { get; set; }
+    public DateOnly EventDate { get; set; }
 
-    [Column("Locationn")]
-    public string Location { get; set; } = "";
+    public string Locationn { get; set; } = null!;
 
-    [Column("Descriptionn")]
-    public string? Description { get; set; }
+    public string? Descriptionn { get; set; }
 
-    public int Organiser_ID { get; set; }
+    public int OrganiserId { get; set; }
 
-    public decimal Distance { get; set; }
+    public decimal? Distance { get; set; }
 
-    public string Event_Type { get; set; } = "";
+    public string? EventType { get; set; }
+
+    public virtual ICollection<EventCategory> EventCategories { get; set; } = new List<EventCategory>();
+
+    public virtual Organiser Organiser { get; set; } = null!;
 }
-
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace RaceDay.Models;
-
-public class Event
-{
-    public int Event_ID { get; set; }
-
-    public string Event_Name { get; set; } = "";
-
-    [Column(TypeName = "date")]
-    public DateTime Event_Date { get; set; }
-
-    [Column("Locationn")]
-    public string Location { get; set; } = "";
-
-    [Column("Descriptionn")]
-    public string? Description { get; set; }
-
-    public int Organiser_ID { get; set; }
-
-    public decimal Distance { get; set; }
-
-    public string Event_Type { get; set; } = "";
-}
-
-

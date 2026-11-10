@@ -1,10 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
 
-namespace RaceDay.Models;
+namespace RACEDAY.API.Models;
 
-public class Organiser
+public partial class Organiser
 {
-    public int Organiser_ID { get; set; }
-    public string Organiser_Name { get; set; } = "";
-    public string Organiser_Email { get; set; } = "";
-    public string Password { get; set; } = "";
+    public int OrganiserId { get; set; }
+
+    public string OrganiserName { get; set; } = null!;
+
+    public string OrganiserEmail { get; set; } = null!;
+
+    public string Password { get; set; } = null!;
+
+    public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 }

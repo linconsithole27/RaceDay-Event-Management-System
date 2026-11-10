@@ -1,113 +1,121 @@
-
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RaceDay.Data;
-using RaceDay.Models;
-using RaceDay.Security;
+using RACEDAY.API.Data;
+using RACEDAY.API.Models;
+using RACEDAY.API.DTOs;
 
-namespace RaceDay.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class EventsController : ControllerBase
+namespace RACEDAY.API.Controllers
 {
-    private readonly RaceDayDbContext _context;
-
-    public EventsController(RaceDayDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class EventsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly RaceDayDbContext _context;
 
-    // GET: api/events
-    [SessionRole("Organiser")]
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
-    {
-        var events = await _context.Events.ToListAsync();
-
-        return Ok(events);
-    }
-
-    // GET: api/events/5
-    [SessionRole("Organiser")]
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Event>> GetEventById(int id)
-    {
-        var eventItem = await _context.Events
-            .FirstOrDefaultAsync(e => e.Event_ID == id);
-
-        if (eventItem == null)
+        public EventsController(RaceDayDbContext context)
         {
-            return NotFound("Event not found.");
+            _context = context;
         }
 
-        return Ok(eventItem);
-    }
-
-    // POST: api/events
-    [SessionRole("Organiser")]
-    [HttpPost]
-    public async Task<ActionResult<Event>> CreateEvent(
-        [FromBody] Event eventItem)
-    {
-        _context.Events.Add(eventItem);
-
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(
-            nameof(GetEventById),
-            new { id = eventItem.Event_ID },
-            eventItem);
-    }
-
-    // PUT: api/events/5
-    [SessionRole("Organiser")]
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateEvent(
-        int id,
-        [FromBody] Event updatedEvent)
-    {
-        if (id != updatedEvent.Event_ID)
+        // GET: api/events
+        [AllowAnonymous]
+        [Authorize(Roles = "Organiser,Participant")]
+        [HttpGet]
+        public async Task<IActionResult> GetEvents()
         {
-            return BadRequest("Event ID does not match.");
+            var events = await _context.Events.ToListAsync();
+            return Ok(events);
         }
 
-        var existingEvent = await _context.Events
-            .FirstOrDefaultAsync(e => e.Event_ID == id);
-
-        if (existingEvent == null)
+        // POST: api/events
+        [Authorize(Roles = "Organiser")]
+        [HttpPost]
+        public async Task<IActionResult> CreateEvent(CreateEventDto eventDto)
         {
-            return NotFound("Event not found.");
+            bool organiserExists = await _context.Organisers
+                .AnyAsync(o => o.OrganiserId == eventDto.OrganiserId);
+
+            if (!organiserExists)
+            {
+                return NotFound("Organiser not found.");
+            }
+
+            int nextId = (await _context.Events
+                .MaxAsync(e => (int?)e.EventId) ?? 0) + 1;
+
+            var newEvent = new Event
+            {
+                EventId = nextId,
+                EventName = eventDto.EventName,
+                EventDate = eventDto.EventDate,
+                Locationn = eventDto.Location,
+                Descriptionn = eventDto.Description,
+                OrganiserId = eventDto.OrganiserId
+            };
+
+            _context.Events.Add(newEvent);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Event created successfully",
+                eventId = newEvent.EventId
+            });
         }
 
-        existingEvent.Event_Name = updatedEvent.Event_Name;
-        existingEvent.Event_Date = updatedEvent.Event_Date;
-        existingEvent.Location = updatedEvent.Location;
-        existingEvent.Description = updatedEvent.Description;
-        existingEvent.Organiser_ID = updatedEvent.Organiser_ID;
-
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    // DELETE: api/events/5
-    [SessionRole("Organiser")]
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteEvent(int id)
-    {
-        var eventItem = await _context.Events
-            .FirstOrDefaultAsync(e => e.Event_ID == id);
-
-        if (eventItem == null)
+        // PUT: api/events/{id}
+        [Authorize(Roles = "Organiser")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateEvent(int id, CreateEventDto eventDto)
         {
-            return NotFound("Event not found.");
+            var existingEvent = await _context.Events
+                .FirstOrDefaultAsync(e => e.EventId == id);
+
+            if (existingEvent == null)
+            {
+                return NotFound("Event not found.");
+            }
+
+            bool organiserExists = await _context.Organisers
+                .AnyAsync(o => o.OrganiserId == eventDto.OrganiserId);
+
+            if (!organiserExists)
+            {
+                return NotFound("Organiser not found.");
+            }
+
+            existingEvent.EventName = eventDto.EventName;
+            existingEvent.EventDate = eventDto.EventDate;
+            existingEvent.Locationn = eventDto.Location;
+            existingEvent.Descriptionn = eventDto.Description;
+            existingEvent.OrganiserId = eventDto.OrganiserId;
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Event updated successfully.");
         }
 
-        _context.Events.Remove(eventItem);
+        // DELETE: api/events/{id}
+        [Authorize(Roles = "Organiser")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteEvent(int id)
+        {
+            var existingEvent = await _context.Events
+                .FirstOrDefaultAsync(e => e.EventId == id);
 
-        await _context.SaveChangesAsync();
+            if (existingEvent == null)
+            {
+                return NotFound("Event not found.");
+            }
 
-        return NoContent();
+            _context.Events.Remove(existingEvent);
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Event deleted successfully.");
+        }
     }
 }
+

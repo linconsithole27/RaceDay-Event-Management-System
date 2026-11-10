@@ -1,9 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
 
-namespace RaceDay.Models;
+namespace RACEDAY.API.Models;
 
-public class EventCategory
+public partial class EventCategory
 {
-    public int Category_ID { get; set; }
-    public string Category_Name { get; set; } = "";
-    public int Event_ID { get; set; }
+    public int CategoryId { get; set; }
+
+    public string CategoryName { get; set; } = null!;
+
+    public int EventId { get; set; }
+
+    public virtual ICollection<Enrolment> Enrolments { get; set; } = new List<Enrolment>();
+
+    public virtual Event Event { get; set; } = null!;
 }

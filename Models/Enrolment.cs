@@ -1,10 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
 
-namespace RaceDay.Models;
+namespace RACEDAY.API.Models;
 
-public class Enrolment
+public partial class Enrolment
 {
-    public int Enrolment_ID { get; set; }
-    public int Participant_ID { get; set; }
-    public int Category_ID { get; set; }
-    public DateTime Enrolment_Date { get; set; }
+    public int EnrolmentId { get; set; }
+
+    public int ParticipantId { get; set; }
+
+    public int CategoryId { get; set; }
+
+    public DateOnly EnrolmentDate { get; set; }
+
+    public virtual EventCategory Category { get; set; } = null!;
+
+    public virtual Participat Participant { get; set; } = null!;
+
+    public virtual ICollection<Result> Results { get; set; } = new List<Result>();
 }

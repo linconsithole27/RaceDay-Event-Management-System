@@ -1,106 +1,65 @@
-
+﻿
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using RaceDay.Data;
-using RaceDay.Models;
+using RACEDAY.API.Data;
+using RACEDAY.API.Models;
+using RACEDAY.API.DTOs;
 
-namespace RaceDay.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class ResultsController : ControllerBase
+namespace RACEDAY.API.Controllers
 {
-    private readonly RaceDayDbContext _context;
-
-    public ResultsController(RaceDayDbContext context)
+    [ApiController]
+    [Route("api/results")]
+    [Authorize(Roles = "Organiser")]
+    public class ResultsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly RaceDayDbContext _context;
 
-    // GET: api/Results
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Result>>> GetResults()
-    {
-        var results = await _context.Results.ToListAsync();
-        return Ok(results);
-    }
+        public ResultsController(RaceDayDbContext context)
+        {
+            _context = context;
+        }
 
-    // GET: api/Results/1
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Result>> GetResult(int id)
-    {
-        var result = await _context.Results
-            .FirstOrDefaultAsync(r => r.Result_ID == id);
+        // POST: api/results
+        [HttpPost]
+        public async Task<IActionResult> CreateResult(
+            CreateResultDto resultDto)
+        {
+            bool enrolmentExists = await _context.Enrolments
+                .AnyAsync(e => e.EnrolmentId == resultDto.EnrolmentId);
 
-        if (result == null)
-            return NotFound("Result not found.");
+            if (!enrolmentExists)
+                return NotFound("Enrolment not found.");
 
-        return Ok(result);
-    }
+            bool resultExists = await _context.Results
+                .AnyAsync(r => r.EnrolmentId == resultDto.EnrolmentId);
 
-    // POST: api/Results
-    [HttpPost]
-    public async Task<ActionResult<Result>> CreateResult(
-        [FromBody] Result result)
-    {
-        var enrolmentExists = await _context.Enrolments
-            .AnyAsync(e => e.Enrolment_ID == result.Enrolment_ID);
+            if (resultExists)
+                return BadRequest(
+                    "A result already exists for this enrolment.");
 
-        if (!enrolmentExists)
-            return BadRequest("The enrolment does not exist.");
+            int nextId = (await _context.Results
+                .MaxAsync(r => (int?)r.ResultId) ?? 0) + 1;
 
-        _context.Results.Add(result);
-        await _context.SaveChangesAsync();
+            var newResult = new Result
+            {
+                ResultId = nextId,
+                EnrolmentId = resultDto.EnrolmentId,
+                FinishTime = resultDto.FinishTime,
+                Position = resultDto.Position,
+                EnrolmentDate = DateOnly.FromDateTime(DateTime.Today)
+            };
 
-        return CreatedAtAction(
-            nameof(GetResult),
-            new { id = result.Result_ID },
-            result);
-    }
+            _context.Results.Add(newResult);
+            await _context.SaveChangesAsync();
 
-    // PUT: api/Results/1
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateResult(
-        int id,
-        [FromBody] Result updatedResult)
-    {
-        if (id != updatedResult.Result_ID)
-            return BadRequest("Result ID does not match.");
-
-        var result = await _context.Results
-            .FirstOrDefaultAsync(r => r.Result_ID == id);
-
-        if (result == null)
-            return NotFound("Result not found.");
-
-        var enrolmentExists = await _context.Enrolments
-            .AnyAsync(e => e.Enrolment_ID == updatedResult.Enrolment_ID);
-
-        if (!enrolmentExists)
-            return BadRequest("The enrolment does not exist.");
-
-        result.Enrolment_ID = updatedResult.Enrolment_ID;
-        result.Finish_Time = updatedResult.Finish_Time;
-        result.Enrolment_Date = updatedResult.Enrolment_Date;
-
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    // DELETE: api/Results/1
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteResult(int id)
-    {
-        var result = await _context.Results
-            .FirstOrDefaultAsync(r => r.Result_ID == id);
-
-        if (result == null)
-            return NotFound("Result not found.");
-
-        _context.Results.Remove(result);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+            return Ok(new
+            {
+                message = "Result captured successfully",
+                resultId = newResult.ResultId,
+                position = newResult.Position
+            });
+        }
     }
 }
+
